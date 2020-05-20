@@ -51,26 +51,26 @@ class FileConfiguration(
         ))
 
         handle { file: File, _: MessageHeaders ->
-            println("yes")
             val person = xmlMapper.readValue(file, Persons::class.java)
 
             for (per in person.person!!) {
-                println(per.name)
-
-                val pers  = PersonsDB(fullname = per.name!!, birthday = Date(per.birthday!!.time))
+                val pers = PersonsDB(fullname = per.name!!, birthday = Date(per.birthday!!.time))
                 personsRepository.save(pers)
-                println(personsRepository.findById(pers.idPersons!!).get().idPersons)
 
                 for (hobbs in per.hobbies?.hobby!!) {
-                    println(hobbs.hobby_name)
-                    val hobby = HobbyDB(hobby_name = hobbs.hobby_name!!, complexity = hobbs.complexity!!)
-                    hobbyRepository.save(hobby)
-                    println(hobbyRepository.findById(hobby.idHobby!!).get().idHobby)
+                    if (hobbyRepository.findAllByComplexityAndHobbyName(hobbs.complexity!!, hobbs.hobby_name!!).isEmpty()) {
+                        val hobby = HobbyDB(hobbyName = hobbs.hobby_name!!, complexity = hobbs.complexity!!)
+                        hobbyRepository.save(hobby)
+                        hobbiesRepository.save(HobbiesDB(
+                                idPersons = personsRepository.findById(pers.idPersons!!).get().idPersons,
+                                idHobby = hobbyRepository.findById(hobby.idHobby!!).get().idHobby))
 
+                    } else {
+                        hobbiesRepository.save(HobbiesDB(
+                                idPersons = personsRepository.findById(pers.idPersons!!).get().idPersons,
+                                idHobby = hobbyRepository.findAllByComplexityAndHobbyName(hobbs.complexity!!, hobbs.hobby_name!!).firstOrNull()?.idHobby))
 
-                    hobbiesRepository.save(HobbiesDB(
-                            idPersons = personsRepository.findById(pers.idPersons).get().idPersons,
-                            idHobby = hobbyRepository.findById(hobby.idHobby).get().idHobby))
+                    }
 
                 }
             }
@@ -99,4 +99,6 @@ class FileConfiguration(
         )
     }
 }
+
+
 
